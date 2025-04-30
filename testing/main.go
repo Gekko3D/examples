@@ -11,10 +11,22 @@ const (
 	Quit
 )
 
-type StartupModule struct{}
+type TestModule struct{}
 
-func (this StartupModule) Install(app *App, commands *Commands) {
-	//
+func (TestModule) Install(app *App, commands *Commands) {
+	// Add systems
+	app.UseSystem(System(system1).InStage(Update).InState(OnEnter(Startup)))
+	app.UseSystem(System(system2).InStage(Update).InState(OnExecute(Startup)))
+	app.UseSystem(System(system3).InStage(Update).InState(OnExit(Startup)))
+
+	// Custom stage
+	testStage := Stage{
+		Name:       "Very Last Stage",
+		UpdateType: FixedUpdate,
+	}
+
+	app.UseStage(testStage, AfterStage(Finale))
+	app.UseSystem(System(system4).InStage(testStage).InState(OnEnter(Startup)))
 }
 
 type Position struct {
@@ -56,29 +68,28 @@ func system3(cmd *Commands, time *Time) {
 
 		return true
 	})
+}
 
+func system4() {
+	fmt.Println("system4")
 }
 
 func main() {
-	app := NewAppBuilder().
+	app := NewApp().
 		UseStates(Startup, Quit).
-		UseModule(TimeModule{}).
-		UseModule(ClientModule{
+		UseModules(TimeModule{}).
+		UseModules(ClientModule{
 			WindowWidth:  1024,
 			WindowHeight: 768,
 			WindowTitle:  "Testing App",
 		}).
-		UseModule(StartupModule{}).
-		Build()
+		UseModules(TestModule{})
 
 	cmd := app.Commands()
 	cmd.AddEntity(&Position{x: 1, y: 2, z: 3}, &Velocity{dx: 69, dy: 420})
 	cmd.AddEntity(&Name{name: "hello"})
 
 	cmd.AddResources(&X{seconds: 69})
-	cmd.UseSystem(system1, OnExecute(Startup))
-	cmd.UseSystem(system2, OnExecute(Startup))
-	cmd.UseSystem(system3, OnExecute(Startup))
 
 	app.Run()
 }
