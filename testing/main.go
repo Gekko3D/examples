@@ -13,7 +13,7 @@ const (
 
 type TestModule struct{}
 
-func (TestModule) Install(app *App, commands *Commands) {
+func (TestModule) Install(app *App, cmd *Commands) {
 	// Add systems
 	app.UseSystem(System(system1).InStage(Update).InState(OnEnter(Startup)))
 	app.UseSystem(System(system2).InStage(Update).InState(OnExecute(Startup)))
@@ -27,6 +27,8 @@ func (TestModule) Install(app *App, commands *Commands) {
 
 	app.UseStage(testStage, AfterStage(Finale))
 	app.UseSystem(System(system4).InStage(testStage).InState(OnEnter(Startup)))
+
+	app.UseSystem(System(startup).InStage(PreUpdate).InState(OnEnter(Startup)))
 }
 
 type Position struct {
@@ -46,6 +48,15 @@ type Name struct {
 
 type X struct {
 	seconds int
+}
+
+func startup(cmd *Commands, assets *AssetServer) {
+	fmt.Println("startup system")
+
+	cmd.AddEntity(
+		assets.LoadMesh("hleb.3d"),
+		assets.LoadMaterial("hleb.wgl", Vec3{X: 1.0, Y: 1.0, Z: 1.0}),
+	)
 }
 
 func system1() {
@@ -78,6 +89,7 @@ func main() {
 	app := NewApp().
 		UseStates(Startup, Quit).
 		UseModules(TimeModule{}).
+		UseModules(AssetServerModule{}).
 		UseModules(ClientModule{
 			WindowWidth:  1024,
 			WindowHeight: 768,
