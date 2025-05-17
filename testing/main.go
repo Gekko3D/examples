@@ -37,37 +37,49 @@ func (TestModule) Install(app *App, cmd *Commands) {
 	app.UseStage(testStage, AfterStage(Finale))
 }
 
-var cubeVertices = [...]mgl32.Vec3{
+type Vertex struct {
+	pos      [4]float32
+	texCoord [2]float32
+}
+
+func vertex(pos1, pos2, pos3, tc1, tc2 float32) Vertex {
+	return Vertex{
+		pos:      [4]float32{pos1, pos2, pos3, 1},
+		texCoord: [2]float32{tc1, tc2},
+	}
+}
+
+var cubeVertices = [...]any{
 	// top (0, 0, 1)
-	{-1, -1, 1},
-	{1, -1, 1},
-	{1, 1, 1},
-	{-1, 1, 1},
+	vertex(-1, -1, 1, 0, 0),
+	vertex(1, -1, 1, 1, 0),
+	vertex(1, 1, 1, 1, 1),
+	vertex(-1, 1, 1, 0, 1),
 	// bottom (0, 0, -1)
-	{-1, 1, -1},
-	{1, 1, -1},
-	{1, -1, -1},
-	{-1, -1, -1},
+	vertex(-1, 1, -1, 1, 0),
+	vertex(1, 1, -1, 0, 0),
+	vertex(1, -1, -1, 0, 1),
+	vertex(-1, -1, -1, 1, 1),
 	// right (1, 0, 0)
-	{1, -1, -1},
-	{1, 1, -1},
-	{1, 1, 1},
-	{1, -1, 1},
+	vertex(1, -1, -1, 0, 0),
+	vertex(1, 1, -1, 1, 0),
+	vertex(1, 1, 1, 1, 1),
+	vertex(1, -1, 1, 0, 1),
 	// left (-1, 0, 0)
-	{-1, -1, 1},
-	{-1, 1, 1},
-	{-1, 1, -1},
-	{-1, -1, -1},
+	vertex(-1, -1, 1, 1, 0),
+	vertex(-1, 1, 1, 0, 0),
+	vertex(-1, 1, -1, 0, 1),
+	vertex(-1, -1, -1, 1, 1),
 	// front (0, 1, 0)
-	{1, 1, -1},
-	{-1, 1, -1},
-	{-1, 1, 1},
-	{1, 1, 1},
+	vertex(1, 1, -1, 1, 0),
+	vertex(-1, 1, -1, 0, 0),
+	vertex(-1, 1, 1, 0, 1),
+	vertex(1, 1, 1, 1, 1),
 	// back (0, -1, 0)
-	{1, -1, 1},
-	{-1, -1, 1},
-	{-1, -1, -1},
-	{1, -1, -1},
+	vertex(1, -1, 1, 0, 0),
+	vertex(-1, -1, 1, 1, 0),
+	vertex(-1, -1, -1, 1, 1),
+	vertex(1, -1, -1, 0, 1),
 }
 
 var cubeIndices = [...]uint16{
@@ -82,7 +94,7 @@ var cubeIndices = [...]uint16{
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	cmd.AddEntity(
 		assets.LoadMesh(cubeVertices[:], cubeIndices[:]),
-		assets.LoadMaterial("assets/shader.wgsl"),
+		assets.LoadMaterial("assets/shader.wgsl", Vertex{}),
 		CameraComponent{
 			Position: mgl32.Vec3{1.5, 4, 5},
 			LookAt:   mgl32.Vec3{0, 0, 0},
