@@ -37,40 +37,52 @@ func (TestModule) Install(app *App, cmd *Commands) {
 	app.UseStage(testStage, AfterStage(Finale))
 }
 
-var cubeVertices = [...]mgl32.Vec3{
-	// top (0, 0, 1)
-	{-1, -1, 1},
-	{1, -1, 1},
-	{1, 1, 1},
-	{-1, 1, 1},
-	// bottom (0, 0, -1)
-	{-1, 1, -1},
-	{1, 1, -1},
-	{1, -1, -1},
-	{-1, -1, -1},
-	// right (1, 0, 0)
-	{1, -1, -1},
-	{1, 1, -1},
-	{1, 1, 1},
-	{1, -1, 1},
-	// left (-1, 0, 0)
-	{-1, -1, 1},
-	{-1, 1, 1},
-	{-1, 1, -1},
-	{-1, -1, -1},
-	// front (0, 1, 0)
-	{1, 1, -1},
-	{-1, 1, -1},
-	{-1, 1, 1},
-	{1, 1, 1},
-	// back (0, -1, 0)
-	{1, -1, 1},
-	{-1, -1, 1},
-	{-1, -1, -1},
-	{1, -1, -1},
+type MyVertex struct {
+	pos      [3]float32 `gekko:"layout" location:"0" format:"float3"`
+	texCoord [2]float32 `gekko:"layout" location:"1" format:"float2"`
 }
 
-var cubeIndices = [...]uint16{
+func vertex(pos1, pos2, pos3, tc1, tc2 float32) MyVertex {
+	return MyVertex{
+		pos:      [3]float32{pos1, pos2, pos3},
+		texCoord: [2]float32{tc1, tc2},
+	}
+}
+
+var cubeVertices = []MyVertex{
+	// top (0, 0, 1)
+	vertex(-1, -1, 1, 0, 0),
+	vertex(1, -1, 1, 1, 0),
+	vertex(1, 1, 1, 1, 1),
+	vertex(-1, 1, 1, 0, 1),
+	// bottom (0, 0, -1)
+	vertex(-1, 1, -1, 1, 0),
+	vertex(1, 1, -1, 0, 0),
+	vertex(1, -1, -1, 0, 1),
+	vertex(-1, -1, -1, 1, 1),
+	// right (1, 0, 0)
+	vertex(1, -1, -1, 0, 0),
+	vertex(1, 1, -1, 1, 0),
+	vertex(1, 1, 1, 1, 1),
+	vertex(1, -1, 1, 0, 1),
+	// left (-1, 0, 0)
+	vertex(-1, -1, 1, 1, 0),
+	vertex(-1, 1, 1, 0, 0),
+	vertex(-1, 1, -1, 0, 1),
+	vertex(-1, -1, -1, 1, 1),
+	// front (0, 1, 0)
+	vertex(1, 1, -1, 1, 0),
+	vertex(-1, 1, -1, 0, 0),
+	vertex(-1, 1, 1, 0, 1),
+	vertex(1, 1, 1, 1, 1),
+	// back (0, -1, 0)
+	vertex(1, -1, 1, 0, 0),
+	vertex(-1, -1, 1, 1, 0),
+	vertex(-1, -1, -1, 1, 1),
+	vertex(1, -1, -1, 0, 1),
+}
+
+var cubeIndices = []uint16{
 	0, 1, 2, 2, 3, 0, // top
 	4, 5, 6, 6, 7, 4, // bottom
 	8, 9, 10, 10, 11, 8, // right
@@ -81,8 +93,8 @@ var cubeIndices = [...]uint16{
 
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	cmd.AddEntity(
-		assets.LoadMesh(cubeVertices[:], cubeIndices[:]),
-		assets.LoadMaterial("assets/shader.wgsl"),
+		assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices),
+		assets.LoadMaterial("assets/shader.wgsl", MyVertex{}),
 		CameraComponent{
 			Position: mgl32.Vec3{1.5, 4, 5},
 			LookAt:   mgl32.Vec3{0, 0, 0},
