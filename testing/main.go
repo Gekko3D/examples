@@ -42,6 +42,10 @@ type MyVertex struct {
 	texCoord [2]float32 `gekko:"layout" location:"1" format:"float2"`
 }
 
+type MyTexture struct {
+	id AssetId `gekko:"texture" group:"0"  binding:"1"`
+}
+
 func vertex(pos1, pos2, pos3, tc1, tc2 float32) MyVertex {
 	return MyVertex{
 		pos:      [3]float32{pos1, pos2, pos3},
@@ -91,10 +95,32 @@ var cubeIndices = []uint16{
 	20, 21, 22, 22, 23, 20, // back
 }
 
+const texelsSize = 256
+
+func createMandelbrotTexels() (texels [texelsSize * texelsSize]uint8) {
+	for id := 0; id < (texelsSize * texelsSize); id++ {
+		cx := 3.0*float32(id%texelsSize)/float32(texelsSize-1) - 2.0
+		cy := 2.0*float32(id/texelsSize)/float32(texelsSize-1) - 1.0
+		x, y, count := float32(cx), float32(cy), uint8(0)
+		for count < 0xFF && x*x+y*y < 4.0 {
+			oldX := x
+			x = x*x - y*y + cx
+			y = 2.0*oldX*y + cy
+			count += 1
+		}
+		texels[id] = count
+	}
+
+	return texels
+}
+
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
+	texels := createMandelbrotTexels()
+	textureId := assets.LoadTexture(texels[:], texelsSize, texelsSize)
 	cmd.AddEntity(
 		assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices),
 		assets.LoadMaterial("assets/shader.wgsl", MyVertex{}),
+		MyTexture{id: textureId},
 		CameraComponent{
 			Position: mgl32.Vec3{1.5, 4, 5},
 			LookAt:   mgl32.Vec3{0, 0, 0},
