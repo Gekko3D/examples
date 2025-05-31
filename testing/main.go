@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 
 	. "github.com/gekko3d/gekko"
@@ -27,6 +26,11 @@ func (TestModule) Install(app *App, cmd *Commands) {
 			InStage(Update).
 			InAnyState(),
 	)
+	app.UseSystem(
+		System(updateMvps).
+			InStage(Update).
+			InAnyState(),
+	)
 
 	// Custom stage
 	testStage := Stage{
@@ -45,6 +49,22 @@ type MyVertex struct {
 type MyTexture struct {
 	id AssetId `gekko:"texture" group:"0"  binding:"1"`
 }
+
+//type MyUniform struct {
+//	pos        mgl32.Vec3
+//	frame      uint32
+//	resolution mgl32.Vec2
+//	mouse      mgl32.Vec2
+//	time       float32
+//}
+
+type Mvp struct {
+	Transform *mgl32.Mat4 `gekko:"buffer" btype:"uniform" group:"0"  binding:"0"`
+}
+
+//type MyUniformComponent struct {
+//	data MyUniform `gekko:"buffer" btype:"uniform" group:"0" binding:"1"`
+//}
 
 func vertex(pos1, pos2, pos3, tc1, tc2 float32) MyVertex {
 	return MyVertex{
@@ -117,19 +137,37 @@ func createMandelbrotTexels() (texels [texelsSize * texelsSize]uint8) {
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	texels := createMandelbrotTexels()
 	textureId := assets.LoadTexture(texels[:], texelsSize, texelsSize)
+	mesh := assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices)
+	material := assets.LoadMaterial("assets/shader.wgsl", MyVertex{})
+	camera := CameraComponent{
+		Position: mgl32.Vec3{1.5, 4, 5},
+		LookAt:   mgl32.Vec3{0, 0, 0},
+		Up:       mgl32.Vec3{0, 1, 0},
+		Fov:      math.Pi / 4,
+		Aspect:   float32(state.WindowWidth) / float32(state.WindowHeight),
+		Near:     1,
+		Far:      100,
+	}
+
 	cmd.AddEntity(
-		assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices),
-		assets.LoadMaterial("assets/shader.wgsl", MyVertex{}),
+		mesh,
+		material,
 		MyTexture{id: textureId},
-		CameraComponent{
-			Position: mgl32.Vec3{1.5, 4, 5},
-			LookAt:   mgl32.Vec3{0, 0, 0},
-			Up:       mgl32.Vec3{0, 1, 0},
-			Fov:      math.Pi / 4,
-			Aspect:   float32(state.WindowWidth) / float32(state.WindowHeight),
-			Near:     1,
-			Far:      100,
+		camera,
+		Mvp{&mgl32.Mat4{}},
+		TransformComponent{
+			Position: mgl32.Vec3{2, 2, 2},
+			Rotation: 0.0,
+			Scale:    mgl32.Vec3{1, 1, 1},
 		},
+	)
+
+	cmd.AddEntity(
+		mesh,
+		material,
+		MyTexture{id: textureId},
+		camera,
+		Mvp{&mgl32.Mat4{}},
 		TransformComponent{
 			Position: mgl32.Vec3{0, 0, 0},
 			Rotation: 0.0,
@@ -139,7 +177,6 @@ func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 }
 
 func updateCamera(cmd *Commands, input *Input) {
-	fmt.Println("trying to query camera")
 	MakeQuery1[CameraComponent](cmd).Map1(
 		func(entityId EntityId, camera *CameraComponent) bool {
 			var x float32 = 0.0
@@ -167,6 +204,33 @@ func updateCamera(cmd *Commands, input *Input) {
 			camera.Position = camera.Position.Add(update)
 			return true
 		})
+}
+
+func updateMvps(cmd *Commands) {
+	MakeQuery3[CameraComponent, TransformComponent, Mvp](cmd).Map3(
+		func(entityId EntityId, camera *CameraComponent, transform *TransformComponent, mvp *Mvp) bool {
+			matrix := buildMvpMatrix(camera, transform)
+			mvp.Transform = &matrix
+			return true
+		})
+}
+
+func buildMvpMatrix(c *CameraComponent, t *TransformComponent) mgl32.Mat4 {
+	model := mgl32.Translate3D(t.Position.X(), t.Position.Y(), t.Position.Z()).
+		Mul4(mgl32.HomogRotate3DZ(t.Rotation)).
+		Mul4(mgl32.Scale3D(t.Scale.X(), t.Scale.Y(), t.Scale.Z()))
+	view := mgl32.LookAtV(
+		c.Position,
+		c.LookAt,
+		c.Up,
+	)
+	projection := mgl32.Perspective(
+		c.Fov,
+		c.Aspect,
+		c.Near,
+		c.Far,
+	)
+	return projection.Mul4(view).Mul4(model)
 }
 
 func main() {
