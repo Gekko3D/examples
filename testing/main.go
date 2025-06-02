@@ -50,21 +50,9 @@ type MyTexture struct {
 	id AssetId `gekko:"texture" group:"0"  binding:"1"`
 }
 
-//type MyUniform struct {
-//	pos        mgl32.Vec3
-//	frame      uint32
-//	resolution mgl32.Vec2
-//	mouse      mgl32.Vec2
-//	time       float32
-//}
-
 type Mvp struct {
 	Transform *mgl32.Mat4 `gekko:"buffer" btype:"uniform" group:"0"  binding:"0"`
 }
-
-//type MyUniformComponent struct {
-//	data MyUniform `gekko:"buffer" btype:"uniform" group:"0" binding:"1"`
-//}
 
 func vertex(pos1, pos2, pos3, tc1, tc2 float32) MyVertex {
 	return MyVertex{
@@ -136,7 +124,7 @@ func createMandelbrotTexels() (texels [texelsSize * texelsSize]uint8) {
 
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	texels := createMandelbrotTexels()
-	textureId := assets.LoadTexture(texels[:], texelsSize, texelsSize)
+	textureId := assets.CreateTexture(texels[:], texelsSize, texelsSize)
 	mesh := assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices)
 	material := assets.LoadMaterial("assets/shader.wgsl", MyVertex{})
 	camera := CameraComponent{
