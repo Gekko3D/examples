@@ -124,7 +124,7 @@ func createMandelbrotTexels() (texels [texelsSize * texelsSize]uint8) {
 
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	texels := createMandelbrotTexels()
-	textureId := assets.CreateTexture(texels[:], texelsSize, texelsSize)
+	textureId := assets.CreateTexture(texels[:], texelsSize, texelsSize, TextureFormatR8Uint)
 	mesh := assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices)
 	material := assets.LoadMaterial("assets/shader.wgsl", MyVertex{})
 	camera := CameraComponent{
@@ -165,7 +165,7 @@ func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 }
 
 func updateCamera(cmd *Commands, input *Input) {
-	MakeQuery1[CameraComponent](cmd).Map1(
+	MakeQuery1[CameraComponent](cmd).Map(
 		func(entityId EntityId, camera *CameraComponent) bool {
 			var x float32 = 0.0
 			var y float32 = 0.0
@@ -195,7 +195,7 @@ func updateCamera(cmd *Commands, input *Input) {
 }
 
 func updateMvps(cmd *Commands) {
-	MakeQuery3[CameraComponent, TransformComponent, Mvp](cmd).Map3(
+	MakeQuery3[CameraComponent, TransformComponent, Mvp](cmd).Map(
 		func(entityId EntityId, camera *CameraComponent, transform *TransformComponent, mvp *Mvp) bool {
 			matrix := buildMvpMatrix(camera, transform)
 			mvp.Transform = &matrix
