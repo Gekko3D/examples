@@ -27,7 +27,7 @@ func (TestModule) Install(app *App, cmd *Commands) {
 			InAnyState(),
 	)
 	app.UseSystem(
-		System(updateMvps).
+		System(updateUniforms).
 			InStage(Update).
 			InAnyState(),
 	)
@@ -46,13 +46,17 @@ type MyVertex struct {
 	texCoord [2]float32 `gekko:"layout" location:"1" format:"float2"`
 }
 
-type MyTexture struct {
-	id AssetId `gekko:"texture" group:"0"  binding:"1"`
+type MyMaterial struct {
+	Texture  AssetId    `gekko:"texture" group:"0"  binding:"1"`
+	Uniforms MyUniforms `gekko:"uniforms" group:"0" binding:"0"`
 }
 
-type Mvp struct {
-	Transform *mgl32.Mat4 `gekko:"buffer" btype:"uniform" group:"0"  binding:"0"`
+type MyUniforms struct {
+	Transform mgl32.Mat4
+	Color     [4]float32
 }
+
+type Rotating struct{}
 
 func vertex(pos1, pos2, pos3, tc1, tc2 float32) MyVertex {
 	return MyVertex{
@@ -140,9 +144,8 @@ func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	cmd.AddEntity(
 		mesh,
 		material,
-		MyTexture{id: textureId},
+		MyMaterial{Texture: textureId, Uniforms: MyUniforms{mgl32.Mat4{}, [4]float32{1, .25, .25, 1}}},
 		camera,
-		Mvp{&mgl32.Mat4{}},
 		TransformComponent{
 			Position: mgl32.Vec3{2, 2, 2},
 			Rotation: 0.0,
@@ -153,14 +156,14 @@ func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	cmd.AddEntity(
 		mesh,
 		material,
-		MyTexture{id: textureId},
+		MyMaterial{Texture: textureId, Uniforms: MyUniforms{mgl32.Mat4{}, [4]float32{.25, 1, .25, 1}}},
 		camera,
-		Mvp{&mgl32.Mat4{}},
 		TransformComponent{
 			Position: mgl32.Vec3{0, 0, 0},
 			Rotation: 0.0,
 			Scale:    mgl32.Vec3{1, 1, 1},
 		},
+		Rotating{},
 	)
 }
 
@@ -194,13 +197,16 @@ func updateCamera(cmd *Commands, input *Input) {
 		})
 }
 
-func updateMvps(cmd *Commands) {
-	MakeQuery3[CameraComponent, TransformComponent, Mvp](cmd).Map(
-		func(entityId EntityId, camera *CameraComponent, transform *TransformComponent, mvp *Mvp) bool {
-			matrix := buildMvpMatrix(camera, transform)
-			mvp.Transform = &matrix
+func updateUniforms(cmd *Commands, time *Time) {
+	MakeQuery4[CameraComponent, TransformComponent, MyMaterial, Rotating](cmd).Map(
+		func(entityId EntityId, camera *CameraComponent, transform *TransformComponent, mat *MyMaterial, rotating *Rotating) bool {
+			if nil != rotating {
+				transform.Rotation += float32(1.6 * time.Dt)
+			}
+
+			mat.Uniforms.Transform = buildMvpMatrix(camera, transform)
 			return true
-		})
+		}, Rotating{})
 }
 
 func buildMvpMatrix(c *CameraComponent, t *TransformComponent) mgl32.Mat4 {
