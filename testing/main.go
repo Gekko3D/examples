@@ -42,8 +42,8 @@ func (TestModule) Install(app *App, cmd *Commands) {
 }
 
 type MyVertex struct {
-	pos      [3]float32 `gekko:"layout" location:"0" format:"float3"`
-	texCoord [2]float32 `gekko:"layout" location:"1" format:"float2"`
+	pos      mgl32.Vec3 `gekko:"layout" location:"0" format:"float3"`
+	texCoord mgl32.Vec2 `gekko:"layout" location:"1" format:"float2"`
 }
 
 type MyMaterial struct {
@@ -128,7 +128,7 @@ func createMandelbrotTexels() (texels [texelsSize * texelsSize]uint8) {
 
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	texels := createMandelbrotTexels()
-	textureId := assets.CreateTexture(texels[:], texelsSize, texelsSize, TextureFormatR8Uint)
+	textureId := assets.CreateTexture(texels[:], texelsSize, texelsSize, 1, TextureDimension2D, TextureFormatR8Uint)
 	mesh := assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices)
 	material := assets.LoadMaterial("assets/shader.wgsl", MyVertex{})
 	camera := CameraComponent{
