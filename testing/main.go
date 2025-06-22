@@ -47,8 +47,8 @@ type MyVertex struct {
 }
 
 type MyMaterial struct {
+	Uniforms MyUniforms `gekko:"buffer" usage:"uniform,copy_dst" group:"0" binding:"0"`
 	Texture  AssetId    `gekko:"texture" group:"0"  binding:"1"`
-	Uniforms MyUniforms `gekko:"uniforms" group:"0" binding:"0"`
 }
 
 type MyUniforms struct {
@@ -128,9 +128,9 @@ func createMandelbrotTexels() (texels [texelsSize * texelsSize]uint8) {
 
 func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 	texels := createMandelbrotTexels()
-	textureId := assets.CreateTexture(texels[:], texelsSize, texelsSize, TextureFormatR8Uint)
-	mesh := assets.LoadMesh(MakeAnySlice(cubeVertices), cubeIndices)
-	material := assets.LoadMaterial("assets/shader.wgsl", MyVertex{})
+	textureId := assets.CreateTextureFromTexels(texels[:], texelsSize, texelsSize, 1, TextureDimension2D, TextureFormatR8Uint)
+	mesh := assets.CreateMesh(MakeAnySlice(cubeVertices), cubeIndices)
+	material := assets.CreateMaterial("assets/shader.wgsl", MyVertex{})
 	camera := CameraComponent{
 		Position: mgl32.Vec3{1.5, 4, 5},
 		LookAt:   mgl32.Vec3{0, 0, 0},
