@@ -148,7 +148,7 @@ func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 		camera,
 		TransformComponent{
 			Position: mgl32.Vec3{2, 2, 2},
-			Rotation: 0.0,
+			Rotation: mgl32.QuatIdent(),
 			Scale:    mgl32.Vec3{1, 1, 1},
 		},
 	)
@@ -160,7 +160,7 @@ func startup(cmd *Commands, assets *AssetServer, state *WindowState) {
 		camera,
 		TransformComponent{
 			Position: mgl32.Vec3{0, 0, 0},
-			Rotation: 0.0,
+			Rotation: mgl32.QuatIdent(),
 			Scale:    mgl32.Vec3{1, 1, 1},
 		},
 		Rotating{},
@@ -201,7 +201,9 @@ func updateUniforms(cmd *Commands, time *Time) {
 	MakeQuery4[CameraComponent, TransformComponent, MyMaterial, Rotating](cmd).Map(
 		func(entityId EntityId, camera *CameraComponent, transform *TransformComponent, mat *MyMaterial, rotating *Rotating) bool {
 			if nil != rotating {
-				transform.Rotation += float32(1.6 * time.Dt)
+				angle := float32(1.6 * time.Dt)
+				delta := mgl32.QuatRotate(angle, mgl32.Vec3{0, 0, 1})
+				transform.Rotation = transform.Rotation.Mul(delta).Normalize()
 			}
 
 			mat.Uniforms.Transform = buildMvpMatrix(camera, transform)
@@ -211,7 +213,7 @@ func updateUniforms(cmd *Commands, time *Time) {
 
 func buildMvpMatrix(c *CameraComponent, t *TransformComponent) mgl32.Mat4 {
 	model := mgl32.Translate3D(t.Position.X(), t.Position.Y(), t.Position.Z()).
-		Mul4(mgl32.HomogRotate3DZ(t.Rotation)).
+		Mul4(t.Rotation.Mat4()).
 		Mul4(mgl32.Scale3D(t.Scale.X(), t.Scale.Y(), t.Scale.Z()))
 	view := mgl32.LookAtV(
 		c.Position,
