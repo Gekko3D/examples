@@ -1,6 +1,6 @@
-module github.com/gekko3d/examples
+module github.com/gekko3d/examples/testing-vox
 
-go 1.24
+go 1.25.4
 
 require github.com/gekko3d/gekko v0.0.0-20250429191057-408af206e48f
 

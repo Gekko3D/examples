@@ -56,8 +56,6 @@ type MyUniforms struct {
 	Color     [4]float32
 }
 
-type Rotating struct{}
-
 func vertex(pos1, pos2, pos3, tc1, tc2 float32) MyVertex {
 	return MyVertex{
 		pos:      [3]float32{pos1, pos2, pos3},
