@@ -244,6 +244,57 @@ func setupScene(cmd *Commands, assets *AssetServer, physicsWorld *PhysicsWorld) 
 		},
 	)
 
+	// --- Gizmo Tests ---
+
+	// 1. World Origin Lines (RGB Axis)
+	// X Axis (Red)
+	// 1. World Origin Lines (RGB Axis)
+	// X Axis (Red)
+	cmd.AddEntity(
+		NewGizmoLine(mgl32.Vec3{0, 0, 0}, mgl32.Vec3{5, 0, 0}, [4]float32{1, 0, 0, 1}),
+	)
+	// Y Axis (Green)
+	cmd.AddEntity(
+		NewGizmoLine(mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, 5, 0}, [4]float32{0, 1, 0, 1}),
+	)
+	// Z Axis (Blue)
+	cmd.AddEntity(
+		NewGizmoLine(mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, 0, 5}, [4]float32{0, 0, 1, 1}),
+	)
+
+	// 2. Gizmo Cube wireframe around the "Extra Cubes" area
+	cmd.AddEntity(
+		NewGizmoCube(mgl32.Vec3{0, 25, 0}, mgl32.Vec3{20, 20, 20}, [4]float32{1, 1, 0, 1}), // Yellow Cube
+	)
+
+	// 3. Gizmo Sphere near the transparent sphere
+	cmd.AddEntity(
+		NewGizmoSphere(mgl32.Vec3{5, 25, 5}, 1.2, [4]float32{0, 1, 1, 1}), // Cyan Sphere slightly larger than voxel sphere
+	)
+
+	// 4. Circle on the floor
+	cmd.AddEntity(
+		GizmoComponent{
+			Type:     GizmoCircle,
+			Position: mgl32.Vec3{0, 1, 0},
+			Radius:   3.0,
+			Scale:    mgl32.Vec3{1, 1, 1},
+			Color:    [4]float32{1, 0, 1, 1},                           // Magenta Circle
+			Rotation: mgl32.QuatRotate(math.Pi/2, mgl32.Vec3{1, 0, 0}), // Rotate to lie on floor (default circle is XY plane)
+		},
+	)
+
+	// 5. Rectangle frame
+	cmd.AddEntity(
+		GizmoComponent{
+			Type:     GizmoRect,
+			Position: mgl32.Vec3{-10, 5, 0},
+			Scale:    mgl32.Vec3{2, 4, 1},
+			Color:    [4]float32{1, 1, 1, 1},
+			Rotation: mgl32.QuatIdent(),
+		},
+	)
+
 	setupDone = true
 }
 
