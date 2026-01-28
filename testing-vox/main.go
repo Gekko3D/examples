@@ -25,7 +25,6 @@ func main() {
 			WindowWidth:  1280,
 			WindowHeight: 720,
 			WindowTitle:  "Agnostic Physics Demo",
-			AmbientLight: mgl32.Vec3{0.2, 0.2, 0.2},
 		},
 		PhysicsModule{},
 		VoxPhysicsModule{},
@@ -63,6 +62,7 @@ func setupScene(cmd *Commands, assets *AssetServer, physicsWorld *PhysicsWorld) 
 	palette := assets.CreateSimplePalette([4]uint8{100, 100, 100, 255})
 	bluePalette := assets.CreateSimplePalette([4]uint8{50, 100, 255, 255})
 	redPalette := assets.CreateSimplePalette([4]uint8{255, 50, 50, 255})
+	transparentPalette := assets.CreatePBRPalette([4]uint8{180, 220, 255, 210}, 0.15, 0.0, 0.0, 1.5)
 
 	// Playa Model
 	var playaModel AssetId
@@ -103,8 +103,11 @@ func setupScene(cmd *Commands, assets *AssetServer, physicsWorld *PhysicsWorld) 
 
 	// Lights
 	cmd.AddEntity(
+		&LightComponent{Type: LightTypeAmbient, Intensity: 0.1, Color: [3]float32{1, 1, 1}, Range: 40},
+	)
+	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{10, 30, 10}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
-		&LightComponent{Type: LightTypePoint, Intensity: 8, Color: [3]float32{1, 1, 1}, Range: 40},
+		&LightComponent{Type: LightTypePoint, Intensity: 8, Color: [3]float32{1, 1, 1}, Range: 60},
 	)
 
 	// Floor
@@ -131,10 +134,10 @@ func setupScene(cmd *Commands, assets *AssetServer, physicsWorld *PhysicsWorld) 
 		&ColliderComponent{Friction: 0.3, Restitution: 0.5},
 	)
 
-	// Sphere
+	// Transparent Sphere
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{5, 25, 5}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
-		&VoxelModelComponent{VoxelModel: sphereModel, VoxelPalette: redPalette},
+		&VoxelModelComponent{VoxelModel: sphereModel, VoxelPalette: transparentPalette},
 		&RigidBodyComponent{Mass: 1, GravityScale: 1, AngularVelocity: mgl32.Vec3{0, 1, 3}},
 		&ColliderComponent{Friction: 0.3, Restitution: 0.5},
 	)
@@ -251,7 +254,7 @@ func quitSystem(cmd *Commands, input *Input) {
 }
 
 func debugRaycastSystem(state *VoxelRtState, input *Input, cmd *Commands, assets *AssetServer) {
-	if input.JustPressed[MouseButtonLeft] {
+	if input.JustPressed[MouseButtonLeft] || input.JustPressed[MouseButtonRight] {
 		var cam *CameraComponent
 		MakeQuery1[CameraComponent](cmd).Map(func(eid EntityId, c *CameraComponent) bool {
 			cam = c
@@ -274,17 +277,24 @@ func debugRaycastSystem(state *VoxelRtState, input *Input, cmd *Commands, assets
 		start := cam.Position.Add(forward.Mul(0.5))
 		res := state.Raycast(start, forward, 100.0)
 		if res.Hit {
-			fmt.Printf("CPU Raycast HID: Entity=%d T=%f Pos=%v Normal=%v\n", res.Entity, res.T, res.Pos, res.Normal)
+			fmt.Printf("Voxel Hit! Carving sphere at: %v\n", res.Pos)
+			hitPos := start.Add(forward.Mul(res.T))
+			if input.JustPressed[MouseButtonLeft] {
+				// Value 0 = Air (Carving)
+				state.VoxelSphereEdit(res.Entity, hitPos, 0.5, 0)
+			} else if input.JustPressed[MouseButtonRight] {
+				// Value 1 = Solid (Carving)
+				state.VoxelSphereEdit(res.Entity, hitPos, 0.5, 1)
+			}
 
-			// Visual Hitmarker (RED CUBE)
+			// Visual Hitmarker (RED CUBE) - optionally keep for debug
 			markerModel := assets.CreateCubeModel(1, 1, 1, 1.0)
 			markerPalette := assets.CreateSimplePalette([4]uint8{255, 0, 0, 255})
 
-			hitPos := start.Add(forward.Mul(res.T))
 			cmd.AddEntity(
 				&TransformComponent{Position: hitPos, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{0.2, 0.2, 0.2}},
 				&VoxelModelComponent{VoxelModel: markerModel, VoxelPalette: markerPalette},
-				&LifetimeComponent{TimeLeft: 2.0},
+				&LifetimeComponent{TimeLeft: 1.0},
 			)
 
 		} else {
