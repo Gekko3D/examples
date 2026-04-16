@@ -261,7 +261,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 	// )
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{10, 30, 10}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
-		&LightComponent{Type: LightTypePoint, Intensity: 2.4, Color: [3]float32{1, 1, 1}, Range: 36},
+		&LightComponent{Type: LightTypePoint, Intensity: 2.4, Color: [3]float32{1, 1, 1}, Range: 36, CastsShadows: true},
 	)
 	cmd.AddEntity(
 		&TransformComponent{
@@ -269,7 +269,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 			Rotation: mgl32.QuatRotate(mgl32.DegToRad(-12), mgl32.Vec3{1, 0, 0}),
 			Scale:    mgl32.Vec3{1, 1, 1},
 		},
-		&LightComponent{Type: LightTypeDirectional, Intensity: 0.82, Color: [3]float32{1.0, 0.95, 0.9}, Range: 500},
+		&LightComponent{Type: LightTypeDirectional, Intensity: 0.82, Color: [3]float32{1.0, 0.95, 0.9}, Range: 500, CastsShadows: true},
 	)
 
 	cmd.AddEntity(
