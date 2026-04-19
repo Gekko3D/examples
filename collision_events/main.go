@@ -66,6 +66,7 @@ type DemoState struct {
 	LogPanel         EntityId
 
 	CollisionCounts map[CollisionEventType]uint64
+	TriggerCounts   map[CollisionEventType]uint64
 	RecentEvents    []string
 	HighlightEntity EntityId
 	HighlightTimer  float32
@@ -104,6 +105,7 @@ func main() {
 func (DemoModule) Install(app *App, cmd *Commands) {
 	cmd.AddResources(&DemoState{
 		CollisionCounts: make(map[CollisionEventType]uint64),
+		TriggerCounts:   make(map[CollisionEventType]uint64),
 	})
 
 	app.UseSystem(System(setupScene).InStage(Prelude).InState(OnEnter(Startup)))
@@ -355,7 +357,7 @@ func spawnSensorArray(cmd *Commands, state *DemoState) {
 				VoxelResolution: demoVoxelResolution,
 			},
 			&RigidBodyComponent{IsStatic: true, Mass: 0, GravityScale: 0.0},
-			&ColliderComponent{Friction: 0.2, Restitution: 0.6},
+			&ColliderComponent{Friction: 0.2, Restitution: 0.6, IsTrigger: true},
 			&SensorComponent{},
 			&VisualFeedbackComponent{
 				BasePalette:         state.SensorIdle,
@@ -425,7 +427,11 @@ func collisionEventSystem(proxy *PhysicsProxy, state *DemoState, cmd *Commands) 
 	}
 
 	for _, ev := range events {
-		state.CollisionCounts[ev.Type]++
+		if ev.IsTrigger {
+			state.TriggerCounts[ev.Type]++
+		} else {
+			state.CollisionCounts[ev.Type]++
+		}
 		state.LastCollision = ev
 		state.HasLastCollision = true
 
@@ -434,20 +440,34 @@ func collisionEventSystem(proxy *PhysicsProxy, state *DemoState, cmd *Commands) 
 
 		switch ev.Type {
 		case CollisionEventEnter:
-			state.RecentEvents = append(state.RecentEvents,
-				fmt.Sprintf("ENTER: %s <-> %s imp=%.1f rel=%.1f", labelA, labelB, ev.NormalImpulse, ev.RelativeSpeed),
-			)
+			if ev.IsTrigger {
+				state.RecentEvents = append(state.RecentEvents,
+					fmt.Sprintf("TRIGGER ENTER: %s <-> %s", labelA, labelB),
+				)
+				triggerSensorFlash(cmd, ev.A)
+				triggerSensorFlash(cmd, ev.B)
+			} else {
+				state.RecentEvents = append(state.RecentEvents,
+					fmt.Sprintf("ENTER: %s <-> %s imp=%.1f rel=%.1f", labelA, labelB, ev.NormalImpulse, ev.RelativeSpeed),
+				)
 
-			if ev.NormalImpulse >= impactImpulseThreshold {
-				triggerCollisionFlash(cmd, ev.A, impactFlashSeconds)
-				triggerCollisionFlash(cmd, ev.B, impactFlashSeconds)
-				spawnSparkBurst(cmd, state, ev.Point, ev.Normal, ev.NormalImpulse)
+				if ev.NormalImpulse >= impactImpulseThreshold {
+					triggerCollisionFlash(cmd, ev.A, impactFlashSeconds)
+					triggerCollisionFlash(cmd, ev.B, impactFlashSeconds)
+					spawnSparkBurst(cmd, state, ev.Point, ev.Normal, ev.NormalImpulse)
+				}
+				triggerSensorFlash(cmd, ev.A)
+				triggerSensorFlash(cmd, ev.B)
 			}
-			triggerSensorFlash(cmd, ev.A)
-			triggerSensorFlash(cmd, ev.B)
 
 		case CollisionEventStay:
-			if ev.NormalImpulse >= impactImpulseThreshold*0.7 {
+			if ev.IsTrigger {
+				state.RecentEvents = append(state.RecentEvents,
+					fmt.Sprintf("TRIGGER STAY:  %s <-> %s", labelA, labelB),
+				)
+				triggerSensorFlash(cmd, ev.A)
+				triggerSensorFlash(cmd, ev.B)
+			} else if ev.NormalImpulse >= impactImpulseThreshold*0.7 {
 				state.RecentEvents = append(state.RecentEvents,
 					fmt.Sprintf("STAY:  %s <-> %s imp=%.1f rel=%.1f", labelA, labelB, ev.NormalImpulse, ev.RelativeSpeed),
 				)
@@ -456,9 +476,15 @@ func collisionEventSystem(proxy *PhysicsProxy, state *DemoState, cmd *Commands) 
 			}
 
 		case CollisionEventExit:
-			state.RecentEvents = append(state.RecentEvents,
-				fmt.Sprintf("EXIT:  %s <-> %s", labelA, labelB),
-			)
+			if ev.IsTrigger {
+				state.RecentEvents = append(state.RecentEvents,
+					fmt.Sprintf("TRIGGER EXIT:  %s <-> %s", labelA, labelB),
+				)
+			} else {
+				state.RecentEvents = append(state.RecentEvents,
+					fmt.Sprintf("EXIT:  %s <-> %s", labelA, labelB),
+				)
+			}
 		}
 	}
 
@@ -587,9 +613,8 @@ func overlaySystem(vox *VoxelRtState, input *Input, state *DemoState) {
 
 func buildHudPanel(state *DemoState) *UiPanel {
 	children := []UiNode{
-		UiLabel{Text: fmt.Sprintf("Enter: %d", state.CollisionCounts[CollisionEventEnter])},
-		UiLabel{Text: fmt.Sprintf("Stay: %d", state.CollisionCounts[CollisionEventStay])},
-		UiLabel{Text: fmt.Sprintf("Exit: %d", state.CollisionCounts[CollisionEventExit])},
+		UiLabel{Text: fmt.Sprintf("Collision enter/stay/exit: %d / %d / %d", state.CollisionCounts[CollisionEventEnter], state.CollisionCounts[CollisionEventStay], state.CollisionCounts[CollisionEventExit])},
+		UiLabel{Text: fmt.Sprintf("Trigger enter/stay/exit: %d / %d / %d", state.TriggerCounts[CollisionEventEnter], state.TriggerCounts[CollisionEventStay], state.TriggerCounts[CollisionEventExit])},
 		UiSpacer{Height: 6},
 		UiLabel{Text: "Raycast", Dim: true},
 	}
@@ -609,6 +634,7 @@ func buildHudPanel(state *DemoState) *UiPanel {
 	if state.HasLastCollision {
 		children = append(children,
 			UiLabel{Text: fmt.Sprintf("Type: %s", state.LastCollision.Type.String())},
+			UiLabel{Text: fmt.Sprintf("Trigger: %t", state.LastCollision.IsTrigger), Scale: 0.78, Dim: true},
 			UiLabel{Text: fmt.Sprintf("A/B: %d / %d", state.LastCollision.A, state.LastCollision.B)},
 			UiLabel{Text: fmt.Sprintf("Point: [%.2f %.2f %.2f]", state.LastCollision.Point.X(), state.LastCollision.Point.Y(), state.LastCollision.Point.Z()), Scale: 0.78, Dim: true},
 			UiLabel{Text: fmt.Sprintf("Normal: [%.2f %.2f %.2f]", state.LastCollision.Normal.X(), state.LastCollision.Normal.Y(), state.LastCollision.Normal.Z()), Scale: 0.78, Dim: true},
@@ -624,6 +650,7 @@ func buildHudPanel(state *DemoState) *UiPanel {
 		UiSpacer{Height: 6},
 		UiLabel{Text: "F: launch bowling ball", Scale: 0.76, Dim: true},
 		UiLabel{Text: "LMB: push highlighted body", Scale: 0.76, Dim: true},
+		UiLabel{Text: "Sensor cubes now use trigger overlaps only", Scale: 0.76, Dim: true},
 		UiLabel{Text: "Space/Ctrl: fly up/down, Tab: capture mouse", Scale: 0.76, Dim: true},
 		UiLabel{Text: "Crosshair uses ScreenToWorldRay + Raycast", Scale: 0.76, Dim: true},
 	)

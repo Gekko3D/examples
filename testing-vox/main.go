@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"strconv"
+	"strings"
 
 	. "github.com/gekko3d/gekko"
 	"github.com/go-gl/mathgl/mgl32"
@@ -14,6 +16,15 @@ const (
 	Startup State = iota
 	Playing
 	Quit
+)
+
+const (
+	benchWarmupEnv       = "GEKKO_BENCH_WARMUP_SECONDS"
+	benchDurationEnv     = "GEKKO_BENCH_SECONDS"
+	benchLabelEnv        = "GEKKO_BENCH_LABEL"
+	forceHashLookupEnv   = "GEKKO_XBM_FORCE_HASH_LOOKUP"
+	defaultBenchWarmupS  = 5.0
+	defaultBenchCaptureS = 10.0
 )
 
 type SetupModule struct{}
@@ -50,6 +61,16 @@ type DemoState struct {
 	ModePanel       EntityId
 }
 
+type BenchmarkState struct {
+	Enabled             bool
+	Label               string
+	WarmupSeconds       float64
+	CaptureSeconds      float64
+	CaptureStarted      bool
+	CaptureStartElapsed float64
+	CaptureStartFrame   uint64
+}
+
 type OrbiterComponent struct {
 	Radius       float32
 	AngularSpeed float32
@@ -67,8 +88,9 @@ func main() {
 		InputModule{},
 		VoxelRtModule{
 			WindowWidth:  1280,
-			WindowHeight: 720,
+			WindowHeight: 800,
 			WindowTitle:  "Voxel Scene Demo",
+			DebugMode:    true,
 		},
 		PhysicsModule{
 			Synchronous: true,
@@ -91,6 +113,11 @@ func main() {
 
 func (SetupModule) Install(app *App, cmd *Commands) {
 	cmd.AddResources(&DemoState{})
+
+	if bench := loadBenchmarkState(); bench != nil {
+		cmd.AddResources(bench)
+		app.UseSystem(System(benchmarkSystem).InStage(Update).RunAlways())
+	}
 
 	app.UseSystem(System(setupScene).InStage(Prelude))
 	app.UseSystem(
@@ -122,6 +149,42 @@ func (SpinnerModule) Install(app *App, cmd *Commands) {
 }
 
 var setupDone bool
+
+func loadBenchmarkState() *BenchmarkState {
+	captureSeconds := envFloat64(benchDurationEnv, 0)
+	if captureSeconds <= 0 {
+		return nil
+	}
+
+	label := strings.TrimSpace(os.Getenv(benchLabelEnv))
+	if label == "" {
+		if os.Getenv(forceHashLookupEnv) == "1" {
+			label = "hash-only"
+		} else {
+			label = "hybrid"
+		}
+	}
+
+	return &BenchmarkState{
+		Enabled:        true,
+		Label:          label,
+		WarmupSeconds:  envFloat64(benchWarmupEnv, defaultBenchWarmupS),
+		CaptureSeconds: captureSeconds,
+	}
+}
+
+func envFloat64(name string, fallback float64) float64 {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		fmt.Printf("benchmark: ignoring invalid %s=%q: %v\n", name, raw, err)
+		return fallback
+	}
+	return v
+}
 
 func resolveDemoAsset(path string) string {
 	if _, err := os.Stat(path); err == nil {
@@ -723,6 +786,65 @@ func quitSystem(cmd *Commands, input *Input) {
 	if input.Pressed[KeyEscape] {
 		cmd.ChangeState(Quit)
 	}
+}
+
+func benchmarkSystem(cmd *Commands, bench *BenchmarkState, time *Time, state *VoxelRtState) {
+	if bench == nil || !bench.Enabled || state == nil || state.RtApp == nil || time == nil {
+		return
+	}
+
+	if !bench.CaptureStarted {
+		if time.Elapsed < bench.WarmupSeconds {
+			return
+		}
+		bench.CaptureStarted = true
+		bench.CaptureStartElapsed = time.Elapsed
+		bench.CaptureStartFrame = state.RtApp.RenderFrameIndex
+		fmt.Printf(
+			"BENCH start label=%s warmup_s=%.2f capture_s=%.2f force_hash=%t\n",
+			bench.Label,
+			bench.WarmupSeconds,
+			bench.CaptureSeconds,
+			os.Getenv(forceHashLookupEnv) == "1",
+		)
+		return
+	}
+
+	captureElapsed := time.Elapsed - bench.CaptureStartElapsed
+	if captureElapsed < bench.CaptureSeconds {
+		return
+	}
+
+	frameDelta := state.RtApp.RenderFrameIndex - bench.CaptureStartFrame
+	avgFPS := 0.0
+	avgFrameMS := 0.0
+	if captureElapsed > 0 && frameDelta > 0 {
+		avgFPS = float64(frameDelta) / captureElapsed
+		avgFrameMS = (captureElapsed * 1000.0) / float64(frameDelta)
+	}
+
+	fmt.Printf(
+		"BENCH result label=%s warmup_s=%.2f capture_s=%.2f elapsed_s=%.3f frames=%d avg_fps=%.2f avg_frame_ms=%.2f last_fps=%.2f objects=%d visible=%d terrain_chunks=%d voxel_sec_up=%d voxel_brk_up=%d\n",
+		bench.Label,
+		bench.WarmupSeconds,
+		bench.CaptureSeconds,
+		captureElapsed,
+		frameDelta,
+		avgFPS,
+		avgFrameMS,
+		state.FPS(),
+		state.Counter("Objects"),
+		state.Counter("Visible"),
+		state.Counter("TerrainChunks"),
+		state.Counter("VoxelSecUp"),
+		state.Counter("VoxelBrkUp"),
+	)
+	if stats := strings.TrimSpace(state.RtApp.PreviousProfilerStats); stats != "" {
+		fmt.Printf("BENCH profiler label=%s\n%s\n", bench.Label, stats)
+	}
+
+	bench.Enabled = false
+	cmd.ChangeState(Quit)
 }
 
 func debugRaycastSystem(state *VoxelRtState, input *Input, cmd *Commands, assets *AssetServer, queue *DestructionQueue, demoState *DemoState) {
