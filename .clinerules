@@ -1,0 +1,14 @@
+# Gekko3D Examples — Cline Rules
+
+1. Start every task by reading `.ai/context.md` and `.ai/conventions.md`.
+2. For non-trivial feature or bug work, create or update a matching file in `.ai/features/`.
+3. Read the touched example's `main.go`, `go.mod`, and assets before editing.
+4. If the task depends on engine APIs, inspect the relevant files in `../gekko`.
+5. Preserve the per-example `replace github.com/gekko3d/gekko => ../../gekko` pattern unless the task is explicitly about dependency layout.
+6. Prefer targeted validation:
+   - `cd <example> && env GOWORK=off GOCACHE=/tmp/gekko3d-gocache go test ./...`
+   - `cd <example> && env GOWORK=off GOCACHE=/tmp/gekko3d-gocache go run .`
+7. Do not commit generated binaries, `.DS_Store`, or editor metadata.
+8. When runtime assets are involved, avoid assuming the process is launched from one specific working directory.
+9. Update the active feature file with dependency, asset, architecture, or validation deltas after substantive changes.
+10. Ask before pushing or making broad cross-example refactors.
