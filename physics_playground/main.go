@@ -10,6 +10,13 @@ import (
 const demoVoxelResolution float32 = 0.2
 
 const (
+	primitiveModelRadiusVoxels float32 = 3
+	primitiveCapsuleHeight     float32 = 16
+	primitiveColliderRadius    float32 = (primitiveModelRadiusVoxels*2 + 1) * demoVoxelResolution * 0.5
+	primitiveCapsuleHalfHeight float32 = ((primitiveCapsuleHeight + 1) * demoVoxelResolution * 0.5) - primitiveColliderRadius
+)
+
+const (
 	Startup State = iota
 	Quit
 )
@@ -23,15 +30,24 @@ const (
 	ToolModeGrabber
 )
 
+type ProjectilePrimitive int
+
+const (
+	ProjectileSphere ProjectilePrimitive = iota
+	ProjectileCapsule
+)
+
 type DemoState struct {
 	FloorModel     AssetId
 	CubeModel      AssetId
 	SphereModel    AssetId
+	CapsuleModel   AssetId
 	RampModel      AssetId
 	GreyPalette    AssetId
 	RedPalette     AssetId
 	BluePalette    AssetId
 	ToolMode       ToolMode
+	Projectile     ProjectilePrimitive
 	GrabbedEntity  EntityId
 	GrabDistance   float32
 	GrabOffset     mgl32.Vec3
@@ -75,13 +91,15 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 	// Assets Setup
 	state.FloorModel = assets.CreateCubeModel(150, 3, 150, 1.0)
 	state.CubeModel = assets.CreateCubeModel(6, 6, 6, 1.0)
-	state.SphereModel = assets.CreateSphereModel(3, 1.0)
+	state.SphereModel = assets.CreateSphereModel(primitiveModelRadiusVoxels, 1.0)
+	state.CapsuleModel = assets.CreateCapsuleYModel(primitiveModelRadiusVoxels, primitiveCapsuleHeight, 1.0)
 	state.RampModel = assets.CreateRampModel(28, 12, 18, 1.0)
 
 	state.GreyPalette = assets.CreateSimplePalette([4]uint8{45, 47, 52, 255})
 	state.RedPalette = assets.CreateSimplePalette([4]uint8{255, 50, 50, 255})
 	state.BluePalette = assets.CreateSimplePalette([4]uint8{50, 50, 255, 255})
 	state.ToolMode = ToolModeLauncher
+	state.Projectile = ProjectileSphere
 
 	// 1. Large static floor
 	cmd.AddEntity(
@@ -109,14 +127,28 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 		)
 	}
 
-	// 4. Several spheres at height
+	// 4. Several true primitive colliders at height. The visual voxel models are
+	// dimension-matched to the primitive collider metadata.
 	masses := []float32{0.5, 1.0, 2.0}
 	for i, mass := range masses {
 		cmd.AddEntity(
 			&TransformComponent{Position: mgl32.Vec3{2.8 + float32(i)*2.0, float32(3.6 + float32(i)*1.6), -1.2 + float32(i)*1.0}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 			&VoxelModelComponent{VoxelModel: state.SphereModel, VoxelPalette: state.BluePalette, VoxelResolution: demoVoxelResolution},
 			&RigidBodyComponent{Mass: mass, GravityScale: 1.0},
-			&ColliderComponent{Friction: 0.3, Restitution: 0.6},
+			&ColliderComponent{Shape: ShapeSphere, Radius: primitiveColliderRadius, Friction: 0.3, Restitution: 0.6},
+		)
+	}
+
+	for i := 0; i < 3; i++ {
+		cmd.AddEntity(
+			&TransformComponent{
+				Position: mgl32.Vec3{3.4 + float32(i)*1.8, 5.4 + float32(i)*1.3, 3.2},
+				Rotation: mgl32.QuatRotate(mgl32.DegToRad(28+float32(i)*18), mgl32.Vec3{0, 0, 1}),
+				Scale:    mgl32.Vec3{1, 1, 1},
+			},
+			&VoxelModelComponent{VoxelModel: state.CapsuleModel, VoxelPalette: state.RedPalette, VoxelResolution: demoVoxelResolution},
+			&RigidBodyComponent{Mass: 1.2, GravityScale: 1.0},
+			&ColliderComponent{Shape: ShapeCapsule, Radius: primitiveColliderRadius, CapsuleHalfHeight: primitiveCapsuleHalfHeight, Friction: 0.35, Restitution: 0.45},
 		)
 	}
 
@@ -164,6 +196,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 
 	fmt.Println("Physics Playground Scene Setup Complete")
 	fmt.Println("Press 1 for launcher, 2 for grabber")
+	fmt.Println("Press 3 for sphere projectiles, 4 for capsule projectiles")
 }
 
 func toolModeSystem(input *Input, state *DemoState) {
@@ -177,6 +210,16 @@ func toolModeSystem(input *Input, state *DemoState) {
 		state.ToolMode = ToolModeGrabber
 		state.GrabbedEntity = 0
 		fmt.Println("Grabber tool enabled")
+	}
+
+	if input.JustPressed[Key3] {
+		state.Projectile = ProjectileSphere
+		fmt.Println("Launcher projectile: sphere collider")
+	}
+
+	if input.JustPressed[Key4] {
+		state.Projectile = ProjectileCapsule
+		fmt.Println("Launcher projectile: capsule collider")
 	}
 }
 
@@ -192,18 +235,7 @@ func toolInteractionSystem(cmd *Commands, input *Input, rtState *VoxelRtState, s
 			if cam != nil {
 				origin, dir := rtState.ScreenToWorldRay(input.MouseX, input.MouseY, cam)
 
-				cmd.AddEntity(
-					&TransformComponent{Position: origin, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
-					&VoxelModelComponent{VoxelModel: state.SphereModel, VoxelPalette: state.RedPalette, VoxelResolution: demoVoxelResolution},
-					&RigidBodyComponent{
-						Mass:         1.0,
-						GravityScale: 1.0,
-						Velocity:     dir.Mul(9),
-					},
-					&ColliderComponent{Friction: 0.3, Restitution: 0.6},
-					&LifetimeComponent{TimeLeft: 15},
-				)
-				fmt.Println("Spawned sphere projectile")
+				spawnPrimitiveProjectile(cmd, state, origin, dir)
 			}
 		}
 		return
@@ -268,6 +300,46 @@ func toolInteractionSystem(cmd *Commands, input *Input, rtState *VoxelRtState, s
 	if !found {
 		fmt.Printf("Clicked object %v is not a dynamic rigid body\n", result.Entity)
 	}
+}
+
+func spawnPrimitiveProjectile(cmd *Commands, state *DemoState, origin, dir mgl32.Vec3) {
+	rb := &RigidBodyComponent{
+		Mass:         1.0,
+		GravityScale: 1.0,
+		Velocity:     dir.Mul(9),
+	}
+
+	if state.Projectile == ProjectileCapsule {
+		cmd.AddEntity(
+			&TransformComponent{
+				Position: origin,
+				Rotation: capsuleLaunchRotation(dir),
+				Scale:    mgl32.Vec3{1, 1, 1},
+			},
+			&VoxelModelComponent{VoxelModel: state.CapsuleModel, VoxelPalette: state.RedPalette, VoxelResolution: demoVoxelResolution},
+			rb,
+			&ColliderComponent{Shape: ShapeCapsule, Radius: primitiveColliderRadius, CapsuleHalfHeight: primitiveCapsuleHalfHeight, Friction: 0.3, Restitution: 0.5},
+			&LifetimeComponent{TimeLeft: 15},
+		)
+		fmt.Println("Spawned capsule primitive projectile")
+		return
+	}
+
+	cmd.AddEntity(
+		&TransformComponent{Position: origin, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
+		&VoxelModelComponent{VoxelModel: state.SphereModel, VoxelPalette: state.RedPalette, VoxelResolution: demoVoxelResolution},
+		rb,
+		&ColliderComponent{Shape: ShapeSphere, Radius: primitiveColliderRadius, Friction: 0.3, Restitution: 0.6},
+		&LifetimeComponent{TimeLeft: 15},
+	)
+	fmt.Println("Spawned sphere primitive projectile")
+}
+
+func capsuleLaunchRotation(dir mgl32.Vec3) mgl32.Quat {
+	if dir.LenSqr() <= 1e-6 {
+		return mgl32.QuatIdent()
+	}
+	return mgl32.QuatBetweenVectors(mgl32.Vec3{0, 1, 0}, dir.Normalize())
 }
 
 func grabberSystem(cmd *Commands, input *Input, rtState *VoxelRtState, state *DemoState, time *Time) {
