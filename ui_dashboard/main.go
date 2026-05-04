@@ -448,13 +448,13 @@ func selectedMarkerSystem(cmd *Commands, assets *AssetServer, state *VoxelRtStat
 	drawSelectionMarker(state, x, y, screenRadius, info.Name, color, padding)
 }
 
-func updateDashboardPanelsSystem(cmd *Commands, cfg *DemoConfig, dash *DashboardState, selected *SelectedEntity, vox *VoxelRtState, input *Input) {
-	if dash.Panels[panelSettings] == 0 {
+func updateDashboardPanelsSystem(cmd *Commands, cfg *DemoConfig, dash *DashboardState, selected *SelectedEntity, vox *VoxelRtState, input *Input, time *Time) {
+	if dash == nil {
 		return
 	}
 
 	cmd.AddComponents(dash.Panels[panelSettings], buildSettingsPanel(cfg, dash))
-	cmd.AddComponents(dash.Panels[panelStats], buildStatsPanel(cfg, dash, selected, vox, input, cmd))
+	cmd.AddComponents(dash.Panels[panelStats], buildStatsPanel(cfg, dash, selected, vox, input, time, cmd))
 	cmd.AddComponents(dash.Panels[panelActions], buildActionsPanel(cfg, dash, selected))
 	cmd.AddComponents(dash.Panels[panelScroll], buildScrollPanel(cfg, dash, selected, vox, input, cmd))
 }
@@ -464,9 +464,12 @@ func buildSettingsPanel(cfg *DemoConfig, dash *DashboardState) *UiPanel {
 		Key:      "settings",
 		Anchor:   UiAnchorTopLeft,
 		Position: [2]float32{10, 10},
-		Width:    280,
-		Title:    "Settings",
-		Visible:  dash.PanelVisible[panelSettings],
+		Width:     240,
+		Title:     "Settings",
+		Visible:   dash.PanelVisible[panelSettings],
+		Scale:     0.8,
+		BgColor:   [4]float32{0.05, 0.08, 0.12, 0.85},
+		TextColor: [4]float32{1.0, 0.9, 0.6, 1.0}, // Golden text
 		Children: []UiNode{
 			UiRow{
 				LabelWidth: 72,
@@ -475,7 +478,7 @@ func buildSettingsPanel(cfg *DemoConfig, dash *DashboardState) *UiPanel {
 					UiTextField{
 						Key:   "name",
 						Value: cfg.PlayerName,
-						Width: 172,
+						Width: 140,
 						OnChange: func(s string) {
 							dash.LastAction = fmt.Sprintf("Editing name: %s", s)
 						},
@@ -575,14 +578,28 @@ func buildSettingsPanel(cfg *DemoConfig, dash *DashboardState) *UiPanel {
 	}
 }
 
-func buildStatsPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedEntity, vox *VoxelRtState, input *Input, cmd *Commands) *UiPanel {
+func buildStatsPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedEntity, vox *VoxelRtState, input *Input, time *Time, cmd *Commands) *UiPanel {
 	selectedLabel := "None"
 	if info, ok := selectedInfo(cmd, selected); ok {
 		selectedLabel = info.Name
 	}
+	loadingValue, speedValue := animatedDashboardBarValues(time)
+	
+	gridLines := []string{
+		"  ▄▄▄  ",
+		" █   █ ",
+		" █▄▄▄█ ",
+		"  █ █  ",
+	}
+	gridBgColors := [][][4]float32{
+		{{}, {}, {0, 1, 0, 0.2}, {0, 1, 0, 0.4}, {0, 1, 0, 0.2}, {}, {}},
+		{{}, {0, 0, 1, 0.2}, {}, {}, {}, {0, 0, 1, 0.2}, {}},
+		{{}, {0, 0, 1, 0.2}, {0.5, 0.5, 0.5, 0.3}, {0.5, 0.5, 0.5, 0.3}, {0.5, 0.5, 0.5, 0.3}, {0, 0, 1, 0.2}, {}},
+		{{}, {}, {}, {1, 0, 0, 0.3}, {}, {1, 0, 0, 0.3}, {}},
+	}
 
 	children := []UiNode{
-		UiLabel{Text: fmt.Sprintf("FPS: %.0f", fpsValue(vox))},
+		UiLabel{Text: fmt.Sprintf("FPS: %.0f", fpsValue(vox)), Color: [4]float32{0.4, 1.0, 0.4, 1.0}},
 		UiLabel{Text: fmt.Sprintf("Entities: %d", dash.EntityCount)},
 		UiLabel{Text: fmt.Sprintf("Objects: %d", counterValue(vox, "Objects"))},
 		UiLabel{Text: fmt.Sprintf("Visible: %d", counterValue(vox, "Visible"))},
@@ -590,6 +607,48 @@ func buildStatsPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedEn
 		UiLabel{Text: fmt.Sprintf("Render: %s", renderModeOptions[cfg.RenderMode])},
 		UiLabel{Text: fmt.Sprintf("Selected: %s", selectedLabel)},
 		UiLabel{Text: fmt.Sprintf("GuiCaptured: %t", input != nil && input.GuiCaptured)},
+		UiSpacer{Height: 6},
+		UiRow{
+			LabelWidth: 58,
+			Children: []UiNode{
+				UiLabel{Text: "Loading", Scale: 0.8},
+				UiProgressBar{
+					Key:        "loading",
+					Value:      loadingValue,
+					Min:        0,
+					Max:        100,
+					Scale:      0.8,
+					ValueWidth: 34,
+				},
+			},
+		},
+		UiRow{
+			LabelWidth: 58,
+			Children: []UiNode{
+				UiLabel{Text: "Speed", Scale: 0.8},
+				UiProgressBar{
+					Key:        "speed",
+					Value:      speedValue,
+					Min:        0,
+					Max:        40,
+					Scale:      0.8,
+					ValueLabel: fmt.Sprintf("%.0f / %.0f u/s", speedValue, 40.0),
+					ValueWidth: 78,
+				},
+			},
+		},
+		UiSpacer{Height: 6},
+		UiLabel{Text: "System Sensor", Dim: true},
+		UiAsciiGrid{
+			Key:         "sensor_grid",
+			Lines:       gridLines,
+			BgColorGrid: gridBgColors,
+			CellWidth:   10,
+			CellHeight:  12,
+			Scale:       0.8,
+			Color:       [4]float32{0.6, 0.9, 1.0, 1.0},
+			BgColor:     [4]float32{0.02, 0.04, 0.06, 0.5},
+		},
 		UiSpacer{Height: 6},
 		UiLabel{Text: "Profiler", Dim: true},
 	}
@@ -605,8 +664,20 @@ func buildStatsPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedEn
 		Width:    230,
 		Title:    "Stats",
 		Visible:  dash.PanelVisible[panelStats],
+		BgColor:  [4]float32{0.08, 0.05, 0.12, 0.85},
+		TextColor: [4]float32{0.8, 0.9, 1.0, 1.0}, // Light blue text
 		Children: children,
 	}
+}
+
+func animatedDashboardBarValues(time *Time) (float32, float32) {
+	if time == nil {
+		return 0, 0
+	}
+	elapsed := time.Elapsed
+	loading := float32(math.Mod(elapsed, 4.0) / 4.0 * 100.0)
+	speed := float32(20.0 + math.Sin(elapsed*1.4)*18.0)
+	return loading, speed
 }
 
 func buildActionsPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedEntity) *UiPanel {
@@ -619,9 +690,11 @@ func buildActionsPanel(cfg *DemoConfig, dash *DashboardState, selected *Selected
 		Key:      "actions",
 		Anchor:   UiAnchorBottomLeft,
 		Position: [2]float32{10, 10},
-		Width:    270,
+		Width:    220,
 		Title:    "Actions",
 		Visible:  dash.PanelVisible[panelActions],
+		Scale:    0.8,
+		BgColor:  [4]float32{0.12, 0.08, 0.05, 0.85},
 		Children: []UiNode{
 			UiColumn{
 				Spacing: 6,
@@ -629,7 +702,7 @@ func buildActionsPanel(cfg *DemoConfig, dash *DashboardState, selected *Selected
 					UiButtonControl{
 						Key:   "toggle_debug",
 						Label: debugLabel,
-						Width: 238,
+						Width: 188,
 						OnClick: func() {
 							cfg.ShowDebug = !cfg.ShowDebug
 							dash.ActionCount++
@@ -643,7 +716,7 @@ func buildActionsPanel(cfg *DemoConfig, dash *DashboardState, selected *Selected
 					UiButtonControl{
 						Key:   "cycle_render",
 						Label: "Cycle Render Mode",
-						Width: 238,
+						Width: 188,
 						OnClick: func() {
 							cfg.RenderMode = (cfg.RenderMode + 1) % len(renderModeOptions)
 							dash.ActionCount++
@@ -653,7 +726,7 @@ func buildActionsPanel(cfg *DemoConfig, dash *DashboardState, selected *Selected
 					UiButtonControl{
 						Key:   "boost_speed",
 						Label: "Boost Camera +2",
-						Width: 238,
+						Width: 188,
 						OnClick: func() {
 							cfg.Speed = clampf(cfg.Speed+2.0, 2.0, 40.0)
 							dash.ActionCount++
@@ -663,7 +736,7 @@ func buildActionsPanel(cfg *DemoConfig, dash *DashboardState, selected *Selected
 					UiButtonControl{
 						Key:   "rename_player",
 						Label: "Rotate Player Alias",
-						Width: 238,
+						Width: 188,
 						OnClick: func() {
 							cfg.PlayerName = nextPlayerName(dash.ActionCount)
 							dash.ActionCount++
@@ -673,7 +746,7 @@ func buildActionsPanel(cfg *DemoConfig, dash *DashboardState, selected *Selected
 					UiButtonControl{
 						Key:   "clear_selection",
 						Label: "Clear Selection",
-						Width: 238,
+						Width: 188,
 						OnClick: func() {
 							selected.ID = 0
 							dash.ActionCount++
@@ -715,15 +788,13 @@ func buildScrollPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedE
 		"F3: Actions panel",
 		"F4: Scroll panel",
 		"With free cursor, click scene objects to select them.",
-		"Selected objects get the animated corner frame from spacegame_go.",
+		"Selected objects get the animated corner frame.",
 		"Text and number fields commit on Enter.",
 		"Select cycles advance on click.",
 		"Panels are ECS entities with retained keys.",
 		"AddComponents rebuilds the UiPanel every frame.",
 		"Rows use LabelWidth to keep controls aligned.",
 		"Anchors place panels in each screen corner.",
-		"UiColumn groups action buttons vertically.",
-		"UiSpacer adds breathing room between clusters.",
 		"Background scene continues animating behind UI.",
 		"Use Tab to capture or release the flying camera.",
 	}
@@ -734,7 +805,7 @@ func buildScrollPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedE
 		nodes = append(nodes, UiLabel{
 			Text:  line,
 			Scale: 0.8,
-			Dim:   i >= 10,
+			Dim:   i >= 12,
 		})
 	}
 
@@ -746,12 +817,9 @@ func buildScrollPanel(cfg *DemoConfig, dash *DashboardState, selected *SelectedE
 		MaxHeight: 260,
 		Title:     "Activity Feed",
 		Visible:   dash.PanelVisible[panelScroll],
-		Children: []UiNode{
-			UiColumn{
-				Spacing:  4,
-				Children: nodes,
-			},
-		},
+		BgColor:   [4]float32{0.05, 0.12, 0.08, 0.85},
+		TextColor: [4]float32{0.7, 1.0, 0.8, 1.0}, // Light green text
+		Children:  nodes,
 	}
 }
 
