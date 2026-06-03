@@ -351,7 +351,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{-20, 0, -20}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: floorModel, VoxelPalette: state.GreyPalette, PivotMode: PivotModeCorner},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.5, Restitution: 0.2},
 	)
 
@@ -394,37 +394,37 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{23, 0.8, 8}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: basinPlinthModel, VoxelPalette: cyanPalette},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.6, Restitution: 0.0},
 	)
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{23, 1.7, 8}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: basinFloorModel, VoxelPalette: slatePalette},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.6, Restitution: 0.0},
 	)
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{23, 2.8, 1.7}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: basinWallLongModel, VoxelPalette: amberPalette},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.6, Restitution: 0.0},
 	)
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{23, 2.8, 14.3}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: basinWallLongModel, VoxelPalette: amberPalette},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.6, Restitution: 0.0},
 	)
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{15.3, 2.8, 8}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: basinWallShortModel, VoxelPalette: amberPalette},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.6, Restitution: 0.0},
 	)
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{30.3, 2.8, 8}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: basinWallShortModel, VoxelPalette: amberPalette},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.6, Restitution: 0.0},
 	)
 	cmd.AddEntity(
@@ -876,7 +876,7 @@ func debugRaycastSystem(state *VoxelRtState, input *Input, cmd *Commands, assets
 						found := false
 						MakeQuery2[TransformComponent, RigidBodyComponent](cmd).Map(func(eid EntityId, tc *TransformComponent, rbc *RigidBodyComponent) bool {
 							if eid == result.Entity {
-								if !rbc.IsStatic {
+								if rbc.BodyMode == BodyModeDynamic {
 									demoState.GrabbedEntity = result.Entity
 									demoState.GrabDistance = result.T
 

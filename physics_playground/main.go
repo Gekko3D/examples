@@ -105,7 +105,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{-15, -0.2, -15}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: state.FloorModel, VoxelPalette: state.GreyPalette, PivotMode: PivotModeCorner, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.5, Restitution: 0.2},
 	)
 
@@ -113,7 +113,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{-6.8, -0.1, -1.8}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: state.RampModel, VoxelPalette: state.GreyPalette, PivotMode: PivotModeCorner, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.5, Restitution: 0.2},
 	)
 
@@ -279,7 +279,7 @@ func toolInteractionSystem(cmd *Commands, input *Input, rtState *VoxelRtState, s
 			return true
 		}
 
-		if rb.IsStatic {
+		if rb.BodyMode != BodyModeDynamic {
 			return false
 		}
 
@@ -416,7 +416,7 @@ func clampVec3Len(v mgl32.Vec3, maxLen float32) mgl32.Vec3 {
 func forceFieldSystem(cmd *Commands, input *Input) {
 	if input.JustPressed[KeyF] {
 		MakeQuery1[RigidBodyComponent](cmd).Map(func(eid EntityId, rb *RigidBodyComponent) bool {
-			if !rb.IsStatic {
+			if rb.BodyMode == BodyModeDynamic {
 				rb.ApplyImpulse(mgl32.Vec3{0, 2.2, 0})
 			}
 			return true

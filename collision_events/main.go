@@ -232,7 +232,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 			PivotMode:       PivotModeCorner,
 			VoxelResolution: demoVoxelResolution,
 		},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.7, Restitution: 0.1},
 		&DemoTagComponent{Label: "floor"},
 	)
@@ -246,7 +246,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 			PivotMode:       PivotModeCorner,
 			VoxelResolution: demoVoxelResolution,
 		},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.14, Restitution: 0.05},
 		&DemoTagComponent{Label: "lane"},
 	)
@@ -259,7 +259,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 			PivotMode:       PivotModeCorner,
 			VoxelResolution: demoVoxelResolution,
 		},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.3, Restitution: 0.05},
 		&DemoTagComponent{Label: "rail-left"},
 	)
@@ -272,7 +272,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 			PivotMode:       PivotModeCorner,
 			VoxelResolution: demoVoxelResolution,
 		},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.3, Restitution: 0.05},
 		&DemoTagComponent{Label: "rail-right"},
 	)
@@ -285,7 +285,7 @@ func setupScene(cmd *Commands, assets *AssetServer, state *DemoState) {
 			PivotMode:       PivotModeCorner,
 			VoxelResolution: demoVoxelResolution,
 		},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.4, Restitution: 0.08},
 		&DemoTagComponent{Label: "backstop"},
 	)
@@ -356,7 +356,7 @@ func spawnSensorArray(cmd *Commands, state *DemoState) {
 				VoxelPalette:    state.SensorIdle,
 				VoxelResolution: demoVoxelResolution,
 			},
-			&RigidBodyComponent{IsStatic: true, Mass: 0, GravityScale: 0.0},
+			&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0, GravityScale: 0.0},
 			&ColliderComponent{Friction: 0.2, Restitution: 0.6, IsTrigger: true},
 			&SensorComponent{},
 			&VisualFeedbackComponent{
@@ -879,7 +879,7 @@ func applyImpulseToEntity(cmd *Commands, target EntityId, impulse mgl32.Vec3) bo
 		if eid != target {
 			return true
 		}
-		if rb != nil && !rb.IsStatic {
+		if rb != nil && rb.BodyMode == BodyModeDynamic {
 			rb.ApplyImpulse(impulse)
 			applied = true
 		}

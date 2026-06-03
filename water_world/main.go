@@ -121,7 +121,7 @@ func addWorldFloor(cmd *Commands, state *DemoState) {
 	cmd.AddEntity(
 		&TransformComponent{Position: mgl32.Vec3{0, -1.2, 2}, Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: state.GroundModel, VoxelPalette: state.StonePalette, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.9, Restitution: 0.05},
 	)
 }
@@ -166,21 +166,21 @@ func addDecorativePool(cmd *Commands, state *DemoState) {
 	cmd.AddEntity(
 		&TransformComponent{Position: decorativePoolCenter.Add(mgl32.Vec3{0, -1.95, 0}), Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{0.55, 0.6, 0.55}},
 		&VoxelModelComponent{VoxelModel: state.PlinthModel, VoxelPalette: state.StonePalette, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.8, Restitution: 0.0},
 	)
 
 	cmd.AddEntity(
 		&TransformComponent{Position: decorativePoolCenter.Add(mgl32.Vec3{0, -1.6, 0}), Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{0.55, 1, 0.55}},
 		&VoxelModelComponent{VoxelModel: state.PoolFloorModel, VoxelPalette: state.StonePalette, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.65, Restitution: 0.0},
 	)
 
 	cmd.AddEntity(
 		&TransformComponent{Position: decorativePoolCenter.Add(mgl32.Vec3{0, -1.4, 0}), Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{0.55, 1, 0.55}},
 		&VoxelModelComponent{VoxelModel: state.PoolFrameModel, VoxelPalette: state.WallPalette, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.7, Restitution: 0.0},
 	)
 
@@ -221,19 +221,19 @@ func addPoolStructure(cmd *Commands, state *DemoState, center mgl32.Vec3, plinth
 	cmd.AddEntity(
 		&TransformComponent{Position: center.Add(mgl32.Vec3{0, -4.35, 0}), Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1.4, 1}},
 		&VoxelModelComponent{VoxelModel: plinthModel, VoxelPalette: state.StonePalette, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.8, Restitution: 0.0},
 	)
 	cmd.AddEntity(
 		&TransformComponent{Position: center.Add(mgl32.Vec3{0, -5.1, 0}), Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1, 1}},
 		&VoxelModelComponent{VoxelModel: floorModel, VoxelPalette: state.StonePalette, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.65, Restitution: 0.0},
 	)
 	cmd.AddEntity(
 		&TransformComponent{Position: center.Add(mgl32.Vec3{0, -1.95, 0}), Rotation: mgl32.QuatIdent(), Scale: mgl32.Vec3{1, 1.55, 1}},
 		&VoxelModelComponent{VoxelModel: frameModel, VoxelPalette: state.WallPalette, VoxelResolution: demoVoxelResolution},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.7, Restitution: 0.0},
 	)
 }

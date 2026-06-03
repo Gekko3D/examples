@@ -244,7 +244,7 @@ func spawnArena(cmd *Commands, state *DemoState) {
 			VoxelPalette:    state.FloorPalette,
 			VoxelResolution: 0.1,
 		},
-		&RigidBodyComponent{IsStatic: true, Mass: 0},
+		&RigidBodyComponent{BodyMode: BodyModeStatic, Mass: 0},
 		&ColliderComponent{Friction: 0.65, Restitution: 0.15},
 	)
 
@@ -549,7 +549,7 @@ func applyImpulseToEntity(cmd *Commands, target EntityId, impulse mgl32.Vec3) {
 		if eid != target {
 			return true
 		}
-		if rb != nil && !rb.IsStatic {
+		if rb != nil && rb.BodyMode == BodyModeDynamic {
 			rb.ApplyImpulse(impulse)
 		}
 		return false
