@@ -1,4 +1,4 @@
-module github.com/gekko3d/gekko/examples/fire_and_smoke
+module github.com/gekko3d/gekko/examples/baked_normals
 
 go 1.25.4
 
