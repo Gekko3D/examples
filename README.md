@@ -7,6 +7,6 @@ Gekko Game Engine examples
 - `physics_playground`
   Interactive rigid-body scene with voxel floors, launcher/grabber tools, and true sphere/capsule primitive colliders.
   Run with `cd examples/physics_playground && env GOWORK=off GOCACHE=/tmp/gekko3d-gocache go run .`
-- `navmesh_lab`
-  Generated large level for testing navmesh building and pathfinding with ramps, stairways, terrain, pillars, and buildings.
-  Run with `cd examples/navmesh_lab && env GOWORK=off GOCACHE=/tmp/gekko3d-gocache go run .`
+- `navigation_graph_lab`
+  Pure-Go voxel navigation graph bake, persistence, diagnostics, routing, and debug visualization.
+  Run with `cd examples/navigation_graph_lab && env GOWORK=off GOCACHE=/tmp/gekko3d-gocache go run .`

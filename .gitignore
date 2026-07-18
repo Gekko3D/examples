@@ -11,8 +11,8 @@
 /ui_dashboard/ui_dashboard
 /vox_models/vox_models
 /water_world/water_world
-/navmesh_lab/navmesh_lab
-/navmesh_lab/generated
+/navigation_graph_lab/navigation_graph_lab
+/navigation_graph_lab/generated
 /.idea/examples.iml
 /.idea/misc.xml
 /.idea/modules.xml

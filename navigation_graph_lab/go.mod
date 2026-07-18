@@ -1,4 +1,4 @@
-module github.com/gekko3d/gekko/examples/navmesh_lab
+module github.com/gekko3d/gekko/examples/navigation_graph_lab
 
 go 1.25.4
 
