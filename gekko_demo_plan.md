@@ -837,96 +837,6 @@ water surface rendering and splash particle effects.
 
 ---
 
-### Demo #9: `fire_and_smoke` — Cellular Automata Volumes
-
-**What it teaches**: GPU-simulated volumetric fire and smoke using the cellular automata system, with different presets (torch, campfire, jet, explosion), intensity fading, and appearance customization.
-
-**Modules exercised**: `CellularVolumeComponent`, `CellularType` (Fire, Smoke), `CAVolumePreset`, appearance overrides, intensity/fade parameters.
-
-<details>
-<summary><strong>Implementation Prompt</strong></summary>
-
-```
-You are implementing a Gekko3D demo called "fire_and_smoke" that showcases
-the GPU cellular automata volume system for fire and smoke effects.
-
-## Project Setup
-- Create examples/fire_and_smoke/ with main.go and go.mod. Add to go.work.
-
-## What to Build
-
-1. App bootstrap with core modules + VoxelRtModule + FlyingCameraModule + DemoModule.
-
-2. Scene: dark floor, moody directional lighting (low intensity), warm point
-   lights near fire sources.
-
-3. Fire/smoke volumes — each is an entity with TransformComponent +
-   CellularVolumeComponent:
-
-   a) Torch (tall, narrow, bright):
-      ```go
-      &TransformComponent{Position: {-8, 5, 0}, Scale: {1.5, 3, 1.5}},
-      &CellularVolumeComponent{
-          Type: CellularFire, Preset: CAVolumePresetTorch,
-          Resolution: [3]int{22, 42, 22}, TickRate: 28,
-          Diffusion: 0.08, Buoyancy: 0.98,
-          Cooling: 0.025, Dissipation: 0.01,
-      },
-      ```
-   b) Campfire (wide, warm, with smoke above):
-      Fire entity + separate smoke entity positioned slightly above.
-      Smoke uses CellularSmoke with appearance overrides:
-      ```go
-      UseAppearanceOverride: true,
-      ScatterColor: [3]float32{0.55, 0.5, 0.42},
-      Extinction: 0.85, Emission: 0.0,
-      UseShadowTintOverride: true,
-      ShadowTint: [3]float32{0.25, 0.2, 0.16},
-      ```
-   c) Jet flame (directional, intense):
-      Preset: CAVolumePresetJetFlame, narrow resolution, low buoyancy.
-      Rotated transform to aim sideways.
-   d) Explosion (large, expanding):
-      Preset: CAVolumePresetExplosion, large resolution [48,64,48],
-      high buoyancy, high emission override.
-
-4. Intensity control demo:
-   - One fire volume with UseIntensity: true, Intensity: 1.0,
-     FadeInRate: 0.5, FadeOutRate: 0.3.
-   - Pressing F toggles Intensity between 0 and 1, showing smooth fade.
-
-5. Interactive: pressing 1-4 toggles Disabled field on each volume.
-
-## Key Patterns
-- CellularVolumeComponent needs a TransformComponent for world positioning.
-- Transform.Scale controls the physical size of the volume in world space.
-- Resolution controls the voxel grid density (higher = more detail, more cost).
-- TickRate is simulation Hz (15-30 typical).
-- Diffusion: how fast density spreads to neighbors (0-1).
-- Buoyancy: upward bias for smoke/fire rise.
-- Cooling: temperature decay per tick (fire only).
-- Dissipation: density loss per tick.
-- Preset provides default GPU rendering parameters; UseAppearanceOverride
-  lets you customize ScatterColor, Extinction, Emission, etc.
-- AnchorMode defaults to CAVolumeAnchorCenter — Transform.Position is the
-  center of the volume.
-- Fire and Smoke are GPU-rendered volumetrically when intensity > 0.
-
-## Reference Files
-- Read gekko/ca_ecs.go for CellularVolumeComponent fields and all presets.
-- Read examples/testing-vox/main.go lines 514-617 for CA volume examples.
-
-## Verification
-- Each volume type has distinct visual character (torch vs campfire vs jet).
-- Smoke volume shows grey/brown volumetric scattering above fire.
-- Intensity toggle smoothly fades fire in/out.
-- Toggling volumes on/off works cleanly.
-```
-
-</details>
-
----
-
 ### Demo #10: `destruction_derby` — Voxel Destruction & Debris
 
 **What it teaches**: Runtime voxel destruction with sphere carving, automatic fragment splitting, debris lifecycle, and physics-driven destruction chains.
@@ -1252,10 +1162,9 @@ physics collision event handling and raycasting.
 | 6 | #6 `particles_and_sprites` | Reuses #1, adds asset loading |
 | 7 | #7 `ui_dashboard` | Reuses #1, adds UI module |
 | 8 | #8 `water_world` | Combines #3 physics + new water module |
-| 9 | #9 `fire_and_smoke` | Standalone CA volumes |
-| 10 | #10 `destruction_derby` | Combines #3 physics + destruction |
-| 11 | #11 `vox_models` | Standalone file loading + hierarchy |
-| 12 | #12 `collision_events` | Combines #3 physics + raycast + UI |
+| 9 | #10 `destruction_derby` | Combines #3 physics + destruction |
+| 10 | #11 `vox_models` | Standalone file loading + hierarchy |
+| 11 | #12 `collision_events` | Combines #3 physics + raycast + UI |
 
 ## Common Scaffold
 
