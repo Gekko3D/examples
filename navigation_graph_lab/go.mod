@@ -9,9 +9,12 @@ require (
 
 require (
 	github.com/cogentcore/webgpu v0.23.1-0.20260106034049-bf607259a979 // indirect
+	github.com/ebitengine/oto/v3 v3.4.0 // indirect
+	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	golang.org/x/image v0.34.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 )
 

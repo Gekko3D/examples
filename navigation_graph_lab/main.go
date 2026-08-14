@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -43,6 +44,16 @@ type labWorld struct {
 }
 
 func main() {
+	bakeOnly := flag.Bool("bake-only", false, "rebuild the generated navigation bundle and exit")
+	flag.Parse()
+	if *bakeOnly {
+		world, chunks := buildLabWorld()
+		if err := bakeLab(world, chunks); err != nil {
+			panic(err)
+		}
+		fmt.Println("navigation graph lab bundle rebuilt")
+		return
+	}
 	app := NewApp()
 	app.UseStates(Startup, Quit)
 	app.UseModules(
@@ -300,8 +311,8 @@ func drawHUD(vox *VoxelRtState, state *DemoState) {
 		vox.DrawText("NAV GRAPH LAB ERROR: "+state.Error, 16, 24, 0.55, [4]float32{1, 0.3, 0.25, 1})
 		return
 	}
-	text := fmt.Sprintf("NAV GRAPH LAB spans=%d accepted=%d regions=%d transitions=%d route=%t steps=%d waypoints=%d hard_errors=%d\nGreen=accepted spans  Red=rejected  Blue=regions  Orange=transitions  Cyan=route\nExpected failure: %s",
-		state.Summary.Spans, state.Summary.AcceptedSpans, state.Summary.Regions, state.Summary.RegionTransitions, state.Route.Found, len(state.Route.Steps), len(state.Route.Waypoints), state.Summary.Validation.HardErrorCount, state.Failure.FailureReason)
+	text := fmt.Sprintf("NAV GRAPH LAB spans=%d accepted=%d regions=%d transitions=%d route=%t steps=%d waypoints=%d deps=%d hard_errors=%d\nGreen=accepted spans  Red=rejected  Blue=regions  Orange=transitions  Cyan=route\nExpected failure: %s",
+		state.Summary.Spans, state.Summary.AcceptedSpans, state.Summary.Regions, state.Summary.RegionTransitions, state.Route.Found, len(state.Route.Steps), len(state.Route.Waypoints), len(state.Route.TileDependencies), state.Summary.Validation.HardErrorCount, state.Failure.FailureReason)
 	vox.DrawText(text, 16, 24, 0.5, [4]float32{0.82, 0.96, 1, 1})
 }
 

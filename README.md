@@ -1,6 +1,11 @@
 # examples
 Gekko Game Engine examples
 
+- `deferred_decals`
+  Demonstrates the opt-in deferred decal feature with a procedural atlas,
+  wall projectors, and a floor projector.
+  Run with `cd examples/deferred_decals && env GOWORK=off GOCACHE=/tmp/gekko3d-gocache go run .`
+
 - `entity_groups`
   Demo for `EntityGroupKey`, `AddEntityInGroup`, `AddEntityInGroups`, and `RemoveEntitiesInGroup`.
   Run with `cd examples/entity_groups && env GOWORK=off GOCACHE=/tmp/gekko3d-gocache go run .`
